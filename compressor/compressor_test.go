@@ -21,7 +21,8 @@ func TestNewCompressor(t *testing.T) {
 
 	for _, test := range tests {
 		c := NewCompressor(test.input)
-		actual := c.GenerateFreqTable()
+		c.GenerateFreqTable()
+		actual := *c.GetFreqTable()
 
 		assertMapEqual(t, test.expected, actual)
 	}

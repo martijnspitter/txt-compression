@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"txt-compression/cli"
+	"txt-compression/compressor"
 	"txt-compression/reader"
 )
 
@@ -19,5 +20,10 @@ func main() {
 		return
 	}
 
-	fmt.Println(fileContent)
+	compressor := compressor.NewCompressor(fileContent)
+	compressor.GenerateFreqTable()
+
+	freqTable := compressor.GetHumanReadableFreqTable()
+
+	fmt.Println(freqTable)
 }
