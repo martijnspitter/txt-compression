@@ -1,6 +1,9 @@
 package compressor
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 type Compressor struct {
 	text      string
@@ -32,4 +35,39 @@ func (c *Compressor) GetHumanReadableFreqTable() string {
 		result += fmt.Sprintf("%c %d ", k, v) + "\n"
 	}
 	return result
+}
+
+type Node struct {
+	Left  *Node
+	Right *Node
+	Value rune
+	Count int
+}
+
+type Queue []*Node
+
+func (q Queue) Len() int {
+	return len(q)
+}
+func (q Queue) Less(i, j int) bool {
+	return q[i].Count < q[j].Count
+}
+func (q Queue) Swap(i, j int) {
+	q[i], q[j] = q[j], q[i]
+}
+
+func (c *Compressor) CreateBinaryTree() {
+	queue := make(Queue, len(*c.freqTable))
+	for k, v := range *c.freqTable {
+		queue = append(queue, getNewNode(k, v))
+	}
+	sort.Sort(queue)
+
+}
+
+func getNewNode(value rune, count int) *Node {
+	return &Node{
+		Value: value,
+		Count: count,
+	}
 }
