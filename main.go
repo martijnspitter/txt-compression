@@ -20,10 +20,22 @@ func main() {
 		return
 	}
 
-	compressor := compressor.NewCompressor(fileContent)
-	compressor.GenerateFreqTable()
+	freqTable := getFrequencyTable(fileContent)
+	// binaryTree := getBinaryTree(freqTable)
 
-	freqTable := compressor.GetHumanReadableFreqTable()
+	// compressor := compressor.NewCompressor(binaryTree)
 
 	fmt.Println(freqTable)
+}
+
+func getFrequencyTable(text string) map[rune]int {
+	newFreqTable := compressor.NewFrequencyTable()
+	newFreqTable.Create(text)
+	freqTable := newFreqTable.Get()
+	return freqTable
+}
+
+func getCodeTable(freqTable map[rune]int) *compressor.CodeTable {
+	newBinaryTree := compressor.NewBinaryTree(&freqTable)
+	return newBinaryTree.GetPrefixCodeTable()
 }
