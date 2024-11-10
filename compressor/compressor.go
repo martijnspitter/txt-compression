@@ -1,11 +1,29 @@
 package compressor
 
 type Compressor struct {
-	root *Node
+	BinaryTree  *BinaryTree
+	FreqTable   *FrequencyTable
+	orignalText string
 }
 
-func NewCompressor(root *Node) *Compressor {
+func NewCompressor(orignalText string) *Compressor {
+	newFreqTable := NewFrequencyTable()
+	newFreqTable.Create(orignalText)
+	freqTable := newFreqTable.Get()
+	binaryTree := NewBinaryTree(&freqTable)
+	binaryTree.GetPrefixCodeTable()
+
 	return &Compressor{
-		root: root,
+		FreqTable:   newFreqTable,
+		BinaryTree:  binaryTree,
+		orignalText: orignalText,
 	}
+}
+
+func (c *Compressor) GetHeader() string {
+	return c.BinaryTree.GetCodeTableAsString()
+}
+
+func (c *Compressor) GetCompressedText() string {
+	return c.BinaryTree.GetCompressedText(c.orignalText)
 }

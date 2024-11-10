@@ -1,6 +1,7 @@
 package compressor
 
 import (
+	"fmt"
 	"sort"
 )
 
@@ -9,6 +10,7 @@ type Node struct {
 	Right *Node
 	Value rune
 	Count int
+	ID    int
 }
 
 type BinaryTree struct {
@@ -30,8 +32,10 @@ func NewBinaryTree(freqTable *map[rune]int) *BinaryTree {
 
 func createQueue(freqTable *map[rune]int) *Queue {
 	queue := make(Queue, 0, len(*freqTable))
+	id := 0
 	for k, v := range *freqTable {
-		queue = append(queue, getNewLeafNode(k, v))
+		queue = append(queue, getNewLeafNode(k, v, id))
+		id++
 	}
 	sort.Sort(queue)
 	return &queue
@@ -52,10 +56,31 @@ func createBinaryTree(queue *Queue) *Node {
 	return (*queue)[0]
 }
 
-func (t *BinaryTree) GetPrefixCodeTable() *CodeTable {
+func (t *BinaryTree) GetPrefixCodeTable() {
 	t.CodeTable = make(map[rune]string)
 
 	t.root.Traverse("", &t.CodeTable)
+}
+
+func (t *BinaryTree) GetCodeTableAsString() string {
+	var result string
+	for k, v := range t.CodeTable {
+		result += fmt.Sprintf("%c:%s,", k, v)
+	}
+
+	return result
+}
+
+func (t *BinaryTree) GetCompressedText(text string) string {
+	var result string
+	for _, char := range text {
+		result += t.CodeTable[char]
+	}
+
+	return result
+}
+
+func (t *BinaryTree) GetCodeTable() *CodeTable {
 	return &t.CodeTable
 }
 
@@ -64,12 +89,10 @@ func (n *Node) Traverse(seed string, codeTable *CodeTable) {
 		return
 	}
 	if n.Left != nil {
-		seed := seed + "0"
-		n.Left.Traverse(seed, codeTable)
+		n.Left.Traverse(seed+"0", codeTable)
 	}
 	if n.Right != nil {
-		seed := seed + "1"
-		n.Right.Traverse(seed, codeTable)
+		n.Right.Traverse(seed+"1", codeTable)
 	}
 	if n.Left == nil && n.Right == nil {
 		if seed == "" {
@@ -89,6 +112,9 @@ func (q Queue) Less(i, j int) bool {
 	if len(q) == 0 {
 		return false
 	}
+	if q[i].Count == q[j].Count {
+		return q[i].ID < q[j].ID
+	}
 	return q[i].Count < q[j].Count
 }
 func (q Queue) Swap(i, j int) {
@@ -98,10 +124,11 @@ func (q Queue) Swap(i, j int) {
 	q[i], q[j] = q[j], q[i]
 }
 
-func getNewLeafNode(value rune, count int) *Node {
+func getNewLeafNode(value rune, count, id int) *Node {
 	return &Node{
 		Value: value,
 		Count: count,
+		ID:    id,
 	}
 }
 
@@ -110,5 +137,6 @@ func getNewInternalNode(left, right *Node) *Node {
 		Left:  left,
 		Right: right,
 		Count: left.Count + right.Count,
+		ID:    left.ID + right.ID,
 	}
 }

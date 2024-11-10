@@ -11,21 +11,27 @@ func main() {
 	cli := cli.NewCLI()
 	cli.Run()
 	path := cli.GetPath()
+	output := cli.GetOutputFile()
 
 	reader := reader.NewReader(path)
 
 	fileContent, err := reader.ReadFile()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("READ ERROR: ", err)
 		return
 	}
 
 	freqTable := getFrequencyTable(fileContent)
-	// binaryTree := getBinaryTree(freqTable)
+	codeTable := getCodeTable(freqTable)
 
-	// compressor := compressor.NewCompressor(binaryTree)
+	writer := getWriter(output, codeTable, "compressed")
+	err = writer.WriteFile()
+	if err != nil {
+		fmt.Println("WRITE ERROR: ", err)
+		return
+	}
 
-	fmt.Println(freqTable)
+	fmt.Println(codeTable)
 }
 
 func getFrequencyTable(text string) map[rune]int {
@@ -35,7 +41,12 @@ func getFrequencyTable(text string) map[rune]int {
 	return freqTable
 }
 
-func getCodeTable(freqTable map[rune]int) *compressor.CodeTable {
+func getCodeTable(freqTable map[rune]int) string {
 	newBinaryTree := compressor.NewBinaryTree(&freqTable)
-	return newBinaryTree.GetPrefixCodeTable()
+	newBinaryTree.GetPrefixCodeTable()
+	return newBinaryTree.GetCodeTableAsString()
+}
+
+func getWriter(headerText, compressedText, output string) *reader.Writer {
+	return reader.NewWriter(headerText, compressedText, output)
 }

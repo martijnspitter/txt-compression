@@ -64,21 +64,64 @@ func TestCodeTable(t *testing.T) {
 		c := NewFrequencyTable()
 		c.Create(test.input)
 		bt := NewBinaryTree(&c.Table)
-		ct := bt.GetPrefixCodeTable()
+		bt.GetPrefixCodeTable()
+		ct := bt.GetCodeTable()
 
-		assertMapEqualString(t, test.expected, *ct)
+		assertMapEqualString(t, test.input, test.expected, *ct)
 	}
 }
 
-func assertMapEqualString(t *testing.T, expected map[rune]string, actual map[rune]string) {
+func TestCompressor(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{
+			input:    "",
+			expected: "",
+		},
+		{
+			input:    "a",
+			expected: "0",
+		},
+		{
+			input:    "aa",
+			expected: "00",
+		},
+		{
+			input:    "a b",
+			expected: "10110",
+		},
+		{
+			input:    "abc",
+			expected: "10110",
+		},
+		{
+			input:    "abacabadabacaba",
+			expected: "1011001101100010110011011",
+		},
+	}
+
+	for _, test := range tests {
+		c := NewCompressor(test.input)
+		actual := c.GetCompressedText()
+
+		if test.expected != actual {
+			t.Errorf("Expected %s, got %s", test.expected, actual)
+			t.FailNow()
+		}
+	}
+}
+
+func assertMapEqualString(t *testing.T, input string, expected map[rune]string, actual map[rune]string) {
 	if len(expected) != len(actual) {
-		t.Errorf("Expected map length %d, got %d", len(expected), len(actual))
+		t.Errorf("Expected map length %d, got %d for input %s", len(expected), len(actual), input)
 		t.FailNow()
 	}
 
 	for k, v := range expected {
 		if actual[k] != v {
-			t.Errorf("Expected value %s for key %c, got %s", v, k, actual[k])
+			t.Errorf("Expected value %s for key %c, got %s for input %s", v, k, actual[k], input)
 			t.FailNow()
 		}
 	}
