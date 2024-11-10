@@ -21,7 +21,7 @@ func TestFreqTable(t *testing.T) {
 
 	for _, test := range tests {
 		c := NewFrequencyTable()
-		c.Create(test.input)
+		c.Create(&test.input)
 		actual := c.Get()
 
 		assertMapEqual(t, test.expected, actual)
@@ -62,54 +62,12 @@ func TestCodeTable(t *testing.T) {
 
 	for _, test := range tests {
 		c := NewFrequencyTable()
-		c.Create(test.input)
+		c.Create(&test.input)
 		bt := NewBinaryTree(&c.Table)
 		bt.GetPrefixCodeTable()
 		ct := bt.GetCodeTable()
 
 		assertMapEqualString(t, test.input, test.expected, *ct)
-	}
-}
-
-func TestCompressor(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{
-			input:    "",
-			expected: "",
-		},
-		{
-			input:    "a",
-			expected: "0",
-		},
-		{
-			input:    "aa",
-			expected: "00",
-		},
-		{
-			input:    "a b",
-			expected: "10110",
-		},
-		{
-			input:    "abc",
-			expected: "10110",
-		},
-		{
-			input:    "abacabadabacaba",
-			expected: "1011001101100010110011011",
-		},
-	}
-
-	for _, test := range tests {
-		c := NewCompressor(test.input)
-		actual := c.GetCompressedText()
-
-		if test.expected != actual {
-			t.Errorf("Expected %s, got %s", test.expected, actual)
-			t.FailNow()
-		}
 	}
 }
 

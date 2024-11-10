@@ -11,6 +11,7 @@ type CLI struct {
 	rootCmd    cobra.Command
 	path       string
 	outputFile string
+	decompress bool
 }
 
 func NewCLI() *CLI {
@@ -27,6 +28,7 @@ func NewCLI() *CLI {
 			cli.outputFile = args[1]
 		},
 	}
+	cli.rootCmd.Flags().BoolVar(&cli.decompress, "d", false, "Decompress the file")
 	return cli
 }
 
@@ -43,4 +45,8 @@ func (c *CLI) GetPath() string {
 
 func (c *CLI) GetOutputFile() string {
 	return c.outputFile
+}
+
+func (c *CLI) IsDecompress() bool {
+	return c.decompress
 }

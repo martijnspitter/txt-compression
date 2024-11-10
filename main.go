@@ -2,51 +2,113 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"txt-compression/cli"
 	"txt-compression/compressor"
-	"txt-compression/reader"
 )
 
 func main() {
 	cli := cli.NewCLI()
 	cli.Run()
-	path := cli.GetPath()
-	output := cli.GetOutputFile()
+	inputPath := cli.GetPath()
+	outputPath := cli.GetOutputFile()
+	isDecompress := cli.IsDecompress()
 
-	reader := reader.NewReader(path)
-
-	fileContent, err := reader.ReadFile()
-	if err != nil {
-		fmt.Println("READ ERROR: ", err)
-		return
+	var err error
+	if isDecompress {
+		err = decompressFile(inputPath, outputPath)
+	} else {
+		err = compressFile(inputPath, outputPath)
 	}
 
-	freqTable := getFrequencyTable(fileContent)
-	codeTable := getCodeTable(freqTable)
-
-	writer := getWriter(output, codeTable, "compressed")
-	err = writer.WriteFile()
 	if err != nil {
-		fmt.Println("WRITE ERROR: ", err)
-		return
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func compressFile(inputPath, outputPath string) error {
+	// Open input file
+	inputFile, err := os.Open(inputPath)
+	if err != nil {
+		return fmt.Errorf("failed to open input file: %w", err)
+	}
+	defer inputFile.Close()
+
+	// Create output file
+	outputFile, err := os.Create(outputPath)
+	if err != nil {
+		return fmt.Errorf("failed to create output file: %w", err)
+	}
+	defer outputFile.Close()
+
+	// Create new compressor
+	comp := compressor.NewCompressor()
+
+	// First pass: build frequency table
+	fmt.Println("Building frequency table...")
+	if err := comp.BuildFrequencyTable(inputFile); err != nil {
+		return fmt.Errorf("failed to build frequency table: %w", err)
 	}
 
-	fmt.Println(codeTable)
+	// Reset file pointer to beginning for second pass
+	if _, err := inputFile.Seek(0, 0); err != nil {
+		return fmt.Errorf("failed to reset file position: %w", err)
+	}
+
+	// Second pass: compress and write to output file
+	fmt.Println("Compressing file...")
+	if err := comp.Compress(inputFile, outputFile); err != nil {
+		return fmt.Errorf("failed to compress file: %w", err)
+	}
+
+	// Print compression statistics
+	inputInfo, _ := inputFile.Stat()
+	outputInfo, _ := outputFile.Stat()
+	ratio := float64(outputInfo.Size()) / float64(inputInfo.Size()) * 100
+
+	fmt.Printf("Compression complete:\n")
+	fmt.Printf("Original size: %d bytes\n", inputInfo.Size())
+	fmt.Printf("Compressed size: %d bytes\n", outputInfo.Size())
+	fmt.Printf("Compression ratio: %.2f%%\n", ratio)
+
+	return nil
 }
 
-func getFrequencyTable(text string) map[rune]int {
-	newFreqTable := compressor.NewFrequencyTable()
-	newFreqTable.Create(text)
-	freqTable := newFreqTable.Get()
-	return freqTable
-}
+func decompressFile(inputPath, outputPath string) error {
+	// Open input file
+	inputFile, err := os.Open(inputPath)
+	if err != nil {
+		return fmt.Errorf("failed to open input file: %w", err)
+	}
+	defer inputFile.Close()
 
-func getCodeTable(freqTable map[rune]int) string {
-	newBinaryTree := compressor.NewBinaryTree(&freqTable)
-	newBinaryTree.GetPrefixCodeTable()
-	return newBinaryTree.GetCodeTableAsString()
-}
+	// Create output file
+	outputFile, err := os.Create(outputPath)
+	if err != nil {
+		return fmt.Errorf("failed to create output file: %w", err)
+	}
+	defer outputFile.Close()
 
-func getWriter(headerText, compressedText, output string) *reader.Writer {
-	return reader.NewWriter(headerText, compressedText, output)
+	// Write UTF-8 BOM
+	bom := []byte{0xEF, 0xBB, 0xBF}
+	if _, err := outputFile.Write(bom); err != nil {
+		return fmt.Errorf("failed to write BOM: %w", err)
+	}
+
+	// Create compressor and decompress
+	comp := compressor.NewCompressor()
+	if err := comp.ReadCompressedFile(inputFile, outputFile); err != nil {
+		return fmt.Errorf("decompression failed: %w", err)
+	}
+
+	// Print decompression statistics
+	inputInfo, _ := inputFile.Stat()
+	outputInfo, _ := outputFile.Stat()
+
+	fmt.Printf("Decompression complete:\n")
+	fmt.Printf("Compressed size: %d bytes\n", inputInfo.Size())
+	fmt.Printf("Decompressed size: %d bytes\n", outputInfo.Size())
+
+	return nil
 }

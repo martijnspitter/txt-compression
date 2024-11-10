@@ -1,8 +1,9 @@
 package compressor
 
 import (
+	"container/heap"
 	"fmt"
-	"sort"
+	"strings"
 )
 
 type Node struct {
@@ -31,29 +32,27 @@ func NewBinaryTree(freqTable *map[rune]int) *BinaryTree {
 }
 
 func createQueue(freqTable *map[rune]int) *Queue {
-	queue := make(Queue, 0, len(*freqTable))
+	queue := &Queue{}
+	heap.Init(queue)
 	id := 0
 	for k, v := range *freqTable {
-		queue = append(queue, getNewLeafNode(k, v, id))
+		heap.Push(queue, getNewLeafNode(k, v, id))
 		id++
 	}
-	sort.Sort(queue)
-	return &queue
+	return queue
 }
 
 func createBinaryTree(queue *Queue) *Node {
 	for queue.Len() > 1 {
-		left := (*queue)[0]
-		right := (*queue)[1]
+		left := heap.Pop(queue).(*Node)
+		right := heap.Pop(queue).(*Node)
 		internal := getNewInternalNode(left, right)
-		*queue = (*queue)[2:]
-		*queue = append(*queue, internal)
-		sort.Sort(*queue)
+		heap.Push(queue, internal)
 	}
 	if queue.Len() == 0 {
 		return nil
 	}
-	return (*queue)[0]
+	return heap.Pop(queue).(*Node)
 }
 
 func (t *BinaryTree) GetPrefixCodeTable() {
@@ -63,21 +62,30 @@ func (t *BinaryTree) GetPrefixCodeTable() {
 }
 
 func (t *BinaryTree) GetCodeTableAsString() string {
-	var result string
+	var builder strings.Builder
 	for k, v := range t.CodeTable {
-		result += fmt.Sprintf("%c:%s,", k, v)
+		builder.WriteString(fmt.Sprintf("%c:%s,", k, v))
 	}
 
-	return result
+	return builder.String()
 }
 
 func (t *BinaryTree) GetCompressedText(text string) string {
-	var result string
+	// Pre-calculate the final size to avoid reallocations
+	totalSize := 0
 	for _, char := range text {
-		result += t.CodeTable[char]
+		totalSize += len(t.CodeTable[char])
 	}
 
-	return result
+	// Use a single builder with pre-allocated capacity
+	builder := strings.Builder{}
+	builder.Grow(totalSize)
+
+	for _, char := range text {
+		builder.WriteString(t.CodeTable[char])
+	}
+
+	return builder.String()
 }
 
 func (t *BinaryTree) GetCodeTable() *CodeTable {
@@ -122,6 +130,18 @@ func (q Queue) Swap(i, j int) {
 		return
 	}
 	q[i], q[j] = q[j], q[i]
+}
+
+func (q *Queue) Push(n interface{}) {
+	*q = append(*q, n.(*Node))
+}
+
+func (q *Queue) Pop() interface{} {
+	old := *q
+	n := len(old)
+	node := old[n-1]
+	*q = old[0 : n-1]
+	return node
 }
 
 func getNewLeafNode(value rune, count, id int) *Node {
