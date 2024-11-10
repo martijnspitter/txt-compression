@@ -9,7 +9,7 @@ import (
 type Node struct {
 	Left  *Node
 	Right *Node
-	Value rune
+	Value byte
 	Count int
 	ID    int
 }
@@ -20,9 +20,9 @@ type BinaryTree struct {
 	CodeTable CodeTable
 }
 
-type CodeTable map[rune]string
+type CodeTable map[byte]string
 
-func NewBinaryTree(freqTable *map[rune]int) *BinaryTree {
+func NewBinaryTree(freqTable *map[byte]int) *BinaryTree {
 	queue := createQueue(freqTable)
 	root := createBinaryTree(queue)
 	return &BinaryTree{
@@ -31,7 +31,7 @@ func NewBinaryTree(freqTable *map[rune]int) *BinaryTree {
 	}
 }
 
-func createQueue(freqTable *map[rune]int) *Queue {
+func createQueue(freqTable *map[byte]int) *Queue {
 	queue := &Queue{}
 	heap.Init(queue)
 	id := 0
@@ -56,7 +56,7 @@ func createBinaryTree(queue *Queue) *Node {
 }
 
 func (t *BinaryTree) GetPrefixCodeTable() {
-	t.CodeTable = make(map[rune]string)
+	t.CodeTable = make(map[byte]string)
 
 	t.root.Traverse("", &t.CodeTable)
 }
@@ -70,19 +70,19 @@ func (t *BinaryTree) GetCodeTableAsString() string {
 	return builder.String()
 }
 
-func (t *BinaryTree) GetCompressedText(text string) string {
+func (t *BinaryTree) GetCompressedText(text []byte) string {
 	// Pre-calculate the final size to avoid reallocations
 	totalSize := 0
-	for _, char := range text {
-		totalSize += len(t.CodeTable[char])
+	for _, b := range text {
+		totalSize += len(t.CodeTable[b])
 	}
 
 	// Use a single builder with pre-allocated capacity
 	builder := strings.Builder{}
 	builder.Grow(totalSize)
 
-	for _, char := range text {
-		builder.WriteString(t.CodeTable[char])
+	for _, b := range text {
+		builder.WriteString(t.CodeTable[b])
 	}
 
 	return builder.String()
@@ -144,7 +144,7 @@ func (q *Queue) Pop() interface{} {
 	return node
 }
 
-func getNewLeafNode(value rune, count, id int) *Node {
+func getNewLeafNode(value byte, count, id int) *Node {
 	return &Node{
 		Value: value,
 		Count: count,

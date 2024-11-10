@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"unicode/utf8"
 )
 
 type Compressor struct {
@@ -15,7 +14,7 @@ type Compressor struct {
 }
 
 type HeaderEntry struct {
-	Char     rune
+	Char     byte
 	CodeLen  uint8
 	CodeBits uint32 // The actual bits of the code
 }
@@ -117,17 +116,11 @@ func (c *Compressor) Compress(reader io.Reader, writer io.Writer) error {
 			return fmt.Errorf("error reading file: %w", err)
 		}
 
-		// Process the buffer as UTF-8 text
-		str := string(buf[:n])
-		for len(str) > 0 {
-			r, size := utf8.DecodeRuneInString(str)
-			if r == utf8.RuneError {
-				return fmt.Errorf("invalid UTF-8 sequence")
-			}
-
-			code, exists := c.BinaryTree.CodeTable[r]
+		// Process each byte directly
+		for i := 0; i < n; i++ {
+			code, exists := c.BinaryTree.CodeTable[buf[i]]
 			if !exists {
-				return fmt.Errorf("character not found in code table: %c (hex: %X)", r, r)
+				return fmt.Errorf("byte not found in code table: %02x", buf[i])
 			}
 			bitBuffer.WriteCode(code)
 
@@ -137,8 +130,6 @@ func (c *Compressor) Compress(reader io.Reader, writer io.Writer) error {
 					return fmt.Errorf("error writing compressed data: %w", err)
 				}
 			}
-
-			str = str[size:]
 		}
 	}
 
@@ -238,9 +229,9 @@ func (c *Compressor) ReadCompressedFile(reader io.Reader, writer io.Writer) erro
 	return decoder.DecodeStream(reader, writer, paddingBits)
 }
 
-func (c *Compressor) parseHeader(headerBytes []byte) (map[string]rune, error) {
+func (c *Compressor) parseHeader(headerBytes []byte) (map[string]byte, error) {
 	buf := bytes.NewReader(headerBytes)
-	decodeTable := make(map[string]rune)
+	decodeTable := make(map[string]byte)
 
 	// Read number of entries
 	var numEntries uint32
@@ -274,7 +265,7 @@ func (c *Compressor) parseHeader(headerBytes []byte) (map[string]rune, error) {
 			}
 		}
 
-		decodeTable[code] = rune(char)
+		decodeTable[code] = byte(char)
 	}
 
 	return decodeTable, nil

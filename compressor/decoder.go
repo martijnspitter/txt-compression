@@ -4,15 +4,14 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"unicode/utf8"
 )
 
 type Decoder struct {
-	decodeTable map[string]rune
+	decodeTable map[string]byte
 	currentCode string
 }
 
-func NewDecoder(decodeTable map[string]rune) *Decoder {
+func NewDecoder(decodeTable map[string]byte) *Decoder {
 	return &Decoder{
 		decodeTable: decodeTable,
 		currentCode: "",
@@ -73,14 +72,7 @@ func (d *Decoder) DecodeStream(reader io.Reader, writer io.Writer, paddingBits u
 	return nil
 }
 
-func (d *Decoder) writeRune(writer io.Writer, r rune) error {
-	if bw, ok := writer.(*bufio.Writer); ok {
-		_, err := bw.WriteRune(r)
-		return err
-	}
-
-	buf := make([]byte, 4)
-	n := utf8.EncodeRune(buf, r)
-	_, err := writer.Write(buf[:n])
+func (d *Decoder) writeRune(writer io.Writer, b byte) error {
+	_, err := writer.Write([]byte{b})
 	return err
 }

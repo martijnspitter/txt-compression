@@ -3,16 +3,15 @@ package compressor
 import (
 	"fmt"
 	"io"
-	"unicode/utf8"
 )
 
 type FrequencyTable struct {
-	Table map[rune]int
+	Table map[byte]int
 }
 
 func NewFrequencyTable() *FrequencyTable {
 	return &FrequencyTable{
-		Table: make(map[rune]int),
+		Table: make(map[byte]int),
 	}
 }
 
@@ -28,32 +27,27 @@ func (f *FrequencyTable) Create(reader io.Reader) error {
 			return fmt.Errorf("error reading input: %w", err)
 		}
 
-		// Process the buffer as UTF-8 text
-		str := string(buf[:n])
-		for len(str) > 0 {
-			r, size := utf8.DecodeRuneInString(str)
-			if r == utf8.RuneError {
-				return fmt.Errorf("invalid UTF-8 sequence")
-			}
-			f.Add(r)
-			str = str[size:]
+		// Process each byte directly
+		for i := 0; i < n; i++ {
+			f.Add(buf[i])
 		}
 	}
+
 	return nil
 }
 
-func (f *FrequencyTable) Add(char rune) {
-	f.Table[char]++
+func (f *FrequencyTable) Add(b byte) {
+	f.Table[b]++
 }
 
-func (f *FrequencyTable) Get() map[rune]int {
+func (f *FrequencyTable) Get() map[byte]int {
 	return f.Table
 }
 
 func (f *FrequencyTable) GetHumanReadable() string {
 	var result string
 	for k, v := range f.Table {
-		result += fmt.Sprintf("%c %d ", k, v) + "\n"
+		result += fmt.Sprintf("%02x %d ", k, v) + "\n"
 	}
 	return result
 }
